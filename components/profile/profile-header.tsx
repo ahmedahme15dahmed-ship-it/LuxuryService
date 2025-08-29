@@ -2,15 +2,27 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Camera, Edit, Shield, Crown } from "lucide-react"
+import { Camera, Edit, Shield, Crown, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { useRTL } from "@/components/rtl-provider"
+import { toast } from "@/hooks/use-toast"
 
 export function ProfileHeader() {
   const { isRTL } = useRTL()
-  const [user] = useState({
+  const [user, setUser] = useState({
     id: "1",
     name: "Ahmed Hassan",
     email: "ahmed@example.com",
@@ -22,6 +34,11 @@ export function ProfileHeader() {
     createdAt: "2023-01-15",
     lastLogin: "2024-01-20T10:30:00Z",
     referralCode: "AHMED2024",
+  })
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: user.name,
+    email: user.email,
   })
 
   const getLevelColor = (level: string) => {
@@ -48,6 +65,31 @@ export function ProfileHeader() {
 
   const LevelIcon = getLevelIcon(user.level)
 
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // In a real app, you would upload to a server
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setUser(prev => ({ ...prev, avatar: e.target?.result as string }))
+        toast({
+          title: isRTL ? "تم تحديث الصورة" : "Avatar Updated",
+          description: isRTL ? "تم تحديث صورة الملف الشخصي بنجاح" : "Profile picture updated successfully",
+        })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setUser(prev => ({ ...prev, ...editForm }))
+    setIsEditDialogOpen(false)
+    toast({
+      title: isRTL ? "تم تحديث الملف الشخصي" : "Profile Updated",
+      description: isRTL ? "تم تحديث معلومات الملف الشخصي بنجاح" : "Profile information updated successfully",
+    })
+  }
   return (
     <Card className="mb-8">
       <CardContent className="p-6">
@@ -62,13 +104,15 @@ export function ProfileHeader() {
                 height={120}
                 className="rounded-full border-4 border-accent/20"
               />
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
+              <label className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="h-4 w-4" />
-              </Button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
 
             {/* Level Badge */}
@@ -93,10 +137,51 @@ export function ProfileHeader() {
                   </span>
                 </div>
               </div>
-              <Button variant="outline" className="mt-4 md:mt-0 bg-transparent">
-                <Edit className="h-4 w-4 mr-2" />
-                {isRTL ? "تعديل الملف الشخصي" : "Edit Profile"}
-              </Button>
+              <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="mt-4 md:mt-0 bg-transparent">
+                    <Edit className="h-4 w-4 mr-2" />
+                    {isRTL ? "تعديل الملف الشخصي" : "Edit Profile"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{isRTL ? "تعديل الملف الشخصي" : "Edit Profile"}</DialogTitle>
+                    <DialogDescription>
+                      {isRTL ? "تحديث معلومات الملف الشخصي" : "Update your profile information"}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleEditSubmit}>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label htmlFor="editName">{isRTL ? "الاسم" : "Name"}</Label>
+                        <Input
+                          id="editName"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="editEmail">{isRTL ? "البريد الإلكتروني" : "Email"}</Label>
+                        <Input
+                          id="editEmail"
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                        {isRTL ? "إلغاء" : "Cancel"}
+                      </Button>
+                      <Button type="submit">
+                        {isRTL ? "حفظ" : "Save"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Stats Grid */}
